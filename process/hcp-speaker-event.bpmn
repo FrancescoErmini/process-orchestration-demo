@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL"
+                  xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI"
+                  xmlns:dc="http://www.omg.org/spec/DD/20100524/DC"
+                  xmlns:di="http://www.omg.org/spec/DD/20100524/DI"
+                  xmlns:zeebe="http://camunda.org/schema/zeebe/1.0"
+                  xmlns:modeler="http://camunda.org/schema/modeler/1.0"
+                  id="Definitions_HcpSpeakerEvent"
+                  targetNamespace="http://pharma-demo.local/bpmn"
+                  exporter="Camunda Modeler" exporterVersion="5.40.0"
+                  modeler:executionPlatform="Camunda Cloud" modeler:executionPlatformVersion="8.8.0">
+
+  <bpmn:process id="hcp-speaker-event" name="HCP Speaker Event Governance" isExecutable="true">
+    <bpmn:documentation>Governed lifecycle of an HCP speaker engagement: request, FMV pre-check, compliance review (with fee deviation loop), logistics readiness, event close-out, honorarium payment notification and audit trail delivery.</bpmn:documentation>
+
+    <bpmn:startEvent id="RequestSubmitted" name="Speaker event request submitted">
+      <bpmn:outgoing>Flow_ToFmv</bpmn:outgoing>
+    </bpmn:startEvent>
+
+    <bpmn:serviceTask id="FmvCheck" name="Automated Fair Market Value pre-check">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="fmv-check" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToFmv</bpmn:incoming>
+      <bpmn:incoming>Flow_Resubmitted</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCompliance</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:userTask id="ComplianceReview" name="Compliance review">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="compliance-review-form" />
+        <zeebe:assignmentDefinition candidateGroups="compliance" />
+        <zeebe:taskListeners>
+          <zeebe:taskListener eventType="creating" type="audit-user-task" retries="3" />
+          <zeebe:taskListener eventType="completing" type="audit-user-task" retries="3" />
+        </zeebe:taskListeners>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToCompliance</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToDecision</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:exclusiveGateway id="ComplianceDecision" name="Compliance decision?" default="Flow_Rejected">
+      <bpmn:incoming>Flow_ToDecision</bpmn:incoming>
+      <bpmn:outgoing>Flow_Approved</bpmn:outgoing>
+      <bpmn:outgoing>Flow_Rejected</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+
+    <bpmn:userTask id="ReviseFee" name="Revise speaker fee">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="revise-fee-form" />
+        <zeebe:assignmentDefinition candidateGroups="medical-marketing" />
+        <zeebe:taskListeners>
+          <zeebe:taskListener eventType="creating" type="audit-user-task" retries="3" />
+          <zeebe:taskListener eventType="completing" type="audit-user-task" retries="3" />
+        </zeebe:taskListeners>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Rejected</bpmn:incoming>
+      <bpmn:outgoing>Flow_Resubmitted</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="PrepareLogistics" name="Prepare venue &amp; materials">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="prepare-logistics-form" />
+        <zeebe:assignmentDefinition candidateGroups="event-coordination" />
+        <zeebe:taskListeners>
+          <zeebe:taskListener eventType="creating" type="audit-user-task" retries="3" />
+          <zeebe:taskListener eventType="completing" type="audit-user-task" retries="3" />
+        </zeebe:taskListeners>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_Approved</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToCompletion</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:userTask id="ConfirmEventCompletion" name="Confirm event took place">
+      <bpmn:extensionElements>
+        <zeebe:userTask />
+        <zeebe:formDefinition formId="confirm-completion-form" />
+        <zeebe:assignmentDefinition candidateGroups="event-coordination" />
+        <zeebe:taskListeners>
+          <zeebe:taskListener eventType="creating" type="audit-user-task" retries="3" />
+          <zeebe:taskListener eventType="completing" type="audit-user-task" retries="3" />
+        </zeebe:taskListeners>
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToCompletion</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToPayment</bpmn:outgoing>
+    </bpmn:userTask>
+
+    <bpmn:serviceTask id="NotifyFinance" name="Notify Finance to release honorarium">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="finance-payment-notification" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToPayment</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToAudit</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:serviceTask id="DeliverAuditTrail" name="Deliver audit trail to Finance &amp; Compliance">
+      <bpmn:extensionElements>
+        <zeebe:taskDefinition type="deliver-audit-trail" retries="3" />
+      </bpmn:extensionElements>
+      <bpmn:incoming>Flow_ToAudit</bpmn:incoming>
+      <bpmn:outgoing>Flow_ToEnd</bpmn:outgoing>
+    </bpmn:serviceTask>
+
+    <bpmn:endEvent id="EventClosed" name="Event closed &amp; inspection-ready">
+      <bpmn:incoming>Flow_ToEnd</bpmn:incoming>
+    </bpmn:endEvent>
+
+    <bpmn:sequenceFlow id="Flow_ToFmv" sourceRef="RequestSubmitted" targetRef="FmvCheck" />
+    <bpmn:sequenceFlow id="Flow_ToCompliance" sourceRef="FmvCheck" targetRef="ComplianceReview" />
+    <bpmn:sequenceFlow id="Flow_ToDecision" sourceRef="ComplianceReview" targetRef="ComplianceDecision" />
+    <bpmn:sequenceFlow id="Flow_Approved" name="Approved" sourceRef="ComplianceDecision" targetRef="PrepareLogistics">
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">=complianceDecision = "APPROVED"</bpmn:conditionExpression>
+    </bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_Rejected" name="Fee rejected / changes requested" sourceRef="ComplianceDecision" targetRef="ReviseFee" />
+    <bpmn:sequenceFlow id="Flow_Resubmitted" name="Resubmitted" sourceRef="ReviseFee" targetRef="FmvCheck" />
+    <bpmn:sequenceFlow id="Flow_ToCompletion" sourceRef="PrepareLogistics" targetRef="ConfirmEventCompletion" />
+    <bpmn:sequenceFlow id="Flow_ToPayment" sourceRef="ConfirmEventCompletion" targetRef="NotifyFinance" />
+    <bpmn:sequenceFlow id="Flow_ToAudit" sourceRef="NotifyFinance" targetRef="DeliverAuditTrail" />
+    <bpmn:sequenceFlow id="Flow_ToEnd" sourceRef="DeliverAuditTrail" targetRef="EventClosed" />
+  </bpmn:process>
+
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="hcp-speaker-event">
+      <bpmndi:BPMNShape id="RequestSubmitted_di" bpmnElement="RequestSubmitted">
+        <dc:Bounds x="152" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="126" y="225" width="88" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="FmvCheck_di" bpmnElement="FmvCheck">
+        <dc:Bounds x="250" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ComplianceReview_di" bpmnElement="ComplianceReview">
+        <dc:Bounds x="410" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ComplianceDecision_di" bpmnElement="ComplianceDecision" isMarkerVisible="true">
+        <dc:Bounds x="575" y="175" width="50" height="50" />
+        <bpmndi:BPMNLabel><dc:Bounds x="567" y="145" width="66" height="27" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ReviseFee_di" bpmnElement="ReviseFee">
+        <dc:Bounds x="550" y="320" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="PrepareLogistics_di" bpmnElement="PrepareLogistics">
+        <dc:Bounds x="700" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ConfirmEventCompletion_di" bpmnElement="ConfirmEventCompletion">
+        <dc:Bounds x="860" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="NotifyFinance_di" bpmnElement="NotifyFinance">
+        <dc:Bounds x="1020" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DeliverAuditTrail_di" bpmnElement="DeliverAuditTrail">
+        <dc:Bounds x="1180" y="160" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EventClosed_di" bpmnElement="EventClosed">
+        <dc:Bounds x="1342" y="182" width="36" height="36" />
+        <bpmndi:BPMNLabel><dc:Bounds x="1318" y="225" width="84" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+
+      <bpmndi:BPMNEdge id="Flow_ToFmv_di" bpmnElement="Flow_ToFmv">
+        <di:waypoint x="188" y="200" /><di:waypoint x="250" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToCompliance_di" bpmnElement="Flow_ToCompliance">
+        <di:waypoint x="350" y="200" /><di:waypoint x="410" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToDecision_di" bpmnElement="Flow_ToDecision">
+        <di:waypoint x="510" y="200" /><di:waypoint x="575" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Approved_di" bpmnElement="Flow_Approved">
+        <di:waypoint x="625" y="200" /><di:waypoint x="700" y="200" />
+        <bpmndi:BPMNLabel><dc:Bounds x="638" y="182" width="47" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Rejected_di" bpmnElement="Flow_Rejected">
+        <di:waypoint x="600" y="225" /><di:waypoint x="600" y="320" />
+        <bpmndi:BPMNLabel><dc:Bounds x="607" y="250" width="86" height="40" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_Resubmitted_di" bpmnElement="Flow_Resubmitted">
+        <di:waypoint x="550" y="360" /><di:waypoint x="300" y="360" /><di:waypoint x="300" y="240" />
+        <bpmndi:BPMNLabel><dc:Bounds x="395" y="342" width="62" height="14" /></bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToCompletion_di" bpmnElement="Flow_ToCompletion">
+        <di:waypoint x="800" y="200" /><di:waypoint x="860" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToPayment_di" bpmnElement="Flow_ToPayment">
+        <di:waypoint x="960" y="200" /><di:waypoint x="1020" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToAudit_di" bpmnElement="Flow_ToAudit">
+        <di:waypoint x="1120" y="200" /><di:waypoint x="1180" y="200" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_ToEnd_di" bpmnElement="Flow_ToEnd">
+        <di:waypoint x="1280" y="200" /><di:waypoint x="1342" y="200" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

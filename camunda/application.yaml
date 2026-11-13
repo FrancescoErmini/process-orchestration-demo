@@ -1,0 +1,43 @@
+# Camunda 8 (single "orchestration cluster" image) configured for a lightweight demo:
+#  - Zeebe engine + Tasklist + Operate + Admin in one container
+#  - PostgreSQL as secondary storage (no Elasticsearch needed)
+#  - Basic authentication with pre-provisioned demo users
+camunda:
+  data:
+    secondary-storage:
+      type: rdbms
+      rdbms:
+        url: jdbc:postgresql://postgres:5432/camunda
+        username: camunda
+        password: camunda
+  security:
+    authentication:
+      method: basic
+      unprotected-api: false
+    authorizations:
+      enabled: false
+    initialization:
+      users:
+        - username: demo
+          password: demo
+          name: Demo Admin
+          email: demo@pharma-demo.local
+        - username: marco
+          password: marco
+          name: Marco Rossi (Medical Marketing)
+          email: marco@pharma-demo.local
+        - username: clara
+          password: clara
+          name: Clara Bianchi (Compliance)
+          email: clara@pharma-demo.local
+        - username: elena
+          password: elena
+          name: Elena Verdi (Event Coordinator)
+          email: elena@pharma-demo.local
+        - username: fabio
+          password: fabio
+          name: Fabio Neri (Finance)
+          email: fabio@pharma-demo.local
+      default-roles:
+        admin:
+          users: [demo, marco, clara, elena, fabio]

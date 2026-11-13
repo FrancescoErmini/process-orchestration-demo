@@ -1,0 +1,43 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.40.0"
+  },
+  "schemaVersion": 18,
+  "id": "confirm-completion-form",
+  "type": "default",
+  "components": [
+    {
+      "type": "text",
+      "text": "### {{eventTitle}}\n**Request:** {{requestId}} \u00b7 **Requested by:** {{requestedBy}}\n\n**Speaker:** {{speakerName}} ({{speakerSpecialty}}, tier: {{speakerTier}})\n\n**Date / venue:** {{eventDate}} \u00b7 {{venue}}",
+      "id": "compliance-review-form_c0"
+    },
+    {
+      "type": "checkbox",
+      "key": "eventHeld",
+      "label": "I confirm the event took place as planned",
+      "validate": {
+        "required": true
+      },
+      "id": "confirm-completion-form_c1"
+    },
+    {
+      "type": "number",
+      "key": "attendees",
+      "label": "Number of attendees (HCPs)",
+      "validate": {
+        "required": true,
+        "min": 0
+      },
+      "id": "confirm-completion-form_c2"
+    },
+    {
+      "type": "textarea",
+      "key": "completionNotes",
+      "label": "Notes",
+      "id": "confirm-completion-form_c3"
+    }
+  ]
+}

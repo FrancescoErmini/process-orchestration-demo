@@ -1,0 +1,53 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.40.0"
+  },
+  "schemaVersion": 18,
+  "id": "prepare-logistics-form",
+  "type": "default",
+  "components": [
+    {
+      "type": "text",
+      "text": "### {{eventTitle}}\n**Request:** {{requestId}} \u00b7 **Requested by:** {{requestedBy}}\n\n**Speaker:** {{speakerName}} ({{speakerSpecialty}}, tier: {{speakerTier}})\n\n**Date / venue:** {{eventDate}} \u00b7 {{venue}}",
+      "id": "compliance-review-form_c0"
+    },
+    {
+      "type": "text",
+      "text": "\u2705 Approved by Compliance with a fee of **\u20ac{{proposedFee}}**.",
+      "id": "prepare-logistics-form_c1"
+    },
+    {
+      "type": "checkbox",
+      "key": "venueConfirmed",
+      "label": "Venue booked and confirmed",
+      "validate": {
+        "required": true
+      },
+      "id": "prepare-logistics-form_c2"
+    },
+    {
+      "type": "checkbox",
+      "key": "materialsReady",
+      "label": "Slides / materials reviewed and ready",
+      "validate": {
+        "required": true
+      },
+      "id": "prepare-logistics-form_c3"
+    },
+    {
+      "type": "checkbox",
+      "key": "travelArranged",
+      "label": "Speaker travel & accommodation arranged",
+      "id": "prepare-logistics-form_c4"
+    },
+    {
+      "type": "textarea",
+      "key": "logisticsNotes",
+      "label": "Notes",
+      "id": "prepare-logistics-form_c5"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.40.0"
+  },
+  "schemaVersion": 18,
+  "id": "revise-fee-form",
+  "type": "default",
+  "components": [
+    {
+      "type": "text",
+      "text": "### {{eventTitle}}\n**Request:** {{requestId}} \u00b7 **Requested by:** {{requestedBy}}\n\n**Speaker:** {{speakerName}} ({{speakerSpecialty}}, tier: {{speakerTier}})\n\n**Date / venue:** {{eventDate}} \u00b7 {{venue}}",
+      "id": "compliance-review-form_c0"
+    },
+    {
+      "type": "text",
+      "text": "**Returned by Compliance.** Current fee: \u20ac{{proposedFee}} \u00b7 Recommended: \u20ac{{recommendedFee}}\n\n> {{complianceComment}}",
+      "id": "revise-fee-form_c1"
+    },
+    {
+      "type": "number",
+      "key": "proposedFee",
+      "label": "Revised speaker fee (EUR)",
+      "validate": {
+        "required": true,
+        "min": 0
+      },
+      "id": "revise-fee-form_c2"
+    },
+    {
+      "type": "textarea",
+      "key": "revisionComment",
+      "label": "Change note",
+      "validate": {
+        "required": true
+      },
+      "id": "revise-fee-form_c3"
+    }
+  ]
+}

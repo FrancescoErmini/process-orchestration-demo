@@ -1,0 +1,77 @@
+{
+  "executionPlatform": "Camunda Cloud",
+  "executionPlatformVersion": "8.8.0",
+  "exporter": {
+    "name": "Camunda Modeler",
+    "version": "5.40.0"
+  },
+  "schemaVersion": 18,
+  "id": "compliance-review-form",
+  "type": "default",
+  "components": [
+    {
+      "type": "text",
+      "text": "### {{eventTitle}}\n**Request:** {{requestId}} \u00b7 **Requested by:** {{requestedBy}}\n\n**Speaker:** {{speakerName}} ({{speakerSpecialty}}, tier: {{speakerTier}})\n\n**Date / venue:** {{eventDate}} \u00b7 {{venue}}",
+      "id": "compliance-review-form_c0"
+    },
+    {
+      "type": "text",
+      "id": "fmv_line",
+      "text": "**Proposed fee:** \u20ac{{proposedFee}} \u00b7 **FMV limit for tier:** \u20ac{{fmvLimit}}"
+    },
+    {
+      "type": "text",
+      "id": "fmv_exceeded",
+      "text": "\u26a0\ufe0f **FMV pre-check failed:** the fee EXCEEDS the Fair Market Value limit \u2013 approval will be blocked by policy.",
+      "conditional": {
+        "hide": "=fmvExceeded != true"
+      }
+    },
+    {
+      "type": "text",
+      "id": "fmv_ok",
+      "text": "\u2705 **FMV pre-check passed:** fee is within the limit.",
+      "conditional": {
+        "hide": "=fmvExceeded = true"
+      }
+    },
+    {
+      "type": "radio",
+      "key": "complianceDecision",
+      "label": "Decision",
+      "validate": {
+        "required": true
+      },
+      "values": [
+        {
+          "label": "Approve engagement",
+          "value": "APPROVED"
+        },
+        {
+          "label": "Reject fee \u2013 return to Medical Marketing",
+          "value": "REJECTED"
+        }
+      ],
+      "id": "compliance-review-form_c2"
+    },
+    {
+      "type": "number",
+      "key": "recommendedFee",
+      "label": "Recommended fee (EUR)",
+      "description": "Fee Compliance would accept",
+      "conditional": {
+        "hide": "=complianceDecision != \"REJECTED\""
+      },
+      "id": "compliance-review-form_c3"
+    },
+    {
+      "type": "textarea",
+      "key": "complianceComment",
+      "label": "Comment / justification",
+      "validate": {
+        "required": true
+      },
+      "id": "compliance-review-form_c4"
+    }
+  ]
+}

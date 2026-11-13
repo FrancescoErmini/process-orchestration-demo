@@ -1,0 +1,76 @@
+# HCP Speaker Event Governance - end-to-end demo
+#   docker compose up -d --build
+#
+#   Portal (Node.js)            http://localhost:3000
+#   Camunda Tasklist / Operate  http://localhost:8080   (login demo/demo or any persona)
+#   PostgreSQL                  localhost:5432           (postgres/postgres)
+
+name: hcp-speaker-governance
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+      - postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  camunda:
+    # Camunda 8 Orchestration Cluster: Zeebe engine + Tasklist + Operate + Admin in a single image,
+    # using PostgreSQL as secondary storage (no Elasticsearch required).
+    image: camunda/camunda:8.10.9
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/usr/local/camunda/config/demo/application.yaml
+      JAVA_TOOL_OPTIONS: -Xms512m -Xmx1g
+    volumes:
+      - ./camunda/application.yaml:/usr/local/camunda/config/demo/application.yaml:ro
+      - camunda-data:/usr/local/camunda/data
+    ports:
+      - "8080:8080"     # REST API + web apps (Tasklist, Operate, Admin)
+      - "26500:26500"   # gRPC gateway (for Camunda Modeler deployments / SDKs)
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:9600/actuator/health/readiness | grep -q UP"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+  portal:
+    # Node.js business portal + job workers + audit trail (deploys the BPMN & forms on start-up)
+    build: ./portal
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      camunda:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgres://hcp:hcp@postgres:5432/hcp
+      CAMUNDA_REST_URL: http://camunda:8080
+      CAMUNDA_PUBLIC_URL: http://localhost:8080
+      CAMUNDA_SERVICE_USER: demo
+      CAMUNDA_SERVICE_PASSWORD: demo
+      PROCESS_DIR: /app/process
+    volumes:
+      - ./process:/app/process:ro
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres-data:
+  camunda-data:
